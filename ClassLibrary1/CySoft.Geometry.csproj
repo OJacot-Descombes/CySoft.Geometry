@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>CySoft.Geometry</AssemblyName>
+    <RootNamespace>CySoft.Geometry</RootNamespace>
+  </PropertyGroup>
+
+</Project>
