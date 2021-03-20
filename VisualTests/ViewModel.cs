@@ -17,11 +17,12 @@ namespace VisualTests
         public event PropertyChangedEventHandler PropertyChanged;
 
         private static readonly Random _random = new();
-        private static readonly Font _font = new("Segoe UI", 8);
+        private static readonly Font _font = new("Consolas", 9);
 
         private int _numberOfPoints = 10;
         private byte _pointSetIndex = 255;
         private Vector2[] _points;
+        private OrientedRectangle _baseAlignmentRect;
         private List<Vector2> _convexHull;
         private Size _originalCanvasSize;
 
@@ -44,6 +45,7 @@ namespace VisualTests
             set {
                 if (value != _pointSet) {
                     _pointSet = value;
+                    _pointSetIndex = 255;
                     OnPropertyChanged(nameof(PointSet));
                     OnPropertyChanged(nameof(EnableNumberOfPoints));
                 }
@@ -92,11 +94,17 @@ namespace VisualTests
 
             if (ResultKind == ResultKind.All) {
                 var rectangles = BoundingRectangles.AllFromConvexHull(_convexHull);
-                Color c0 = Color.Green;
+                Color c0 = Color.DeepSkyBlue;
                 Color c1 = Color.Red;
                 for (var i = 0; i < rectangles.Count; i++) {
-                    float f0 = (float)i / (rectangles.Count - 1);
-                    float f1 = 1f - (float)i / (rectangles.Count - 1);
+                    float f0, f1;
+                    if (rectangles.Count <= 1) {
+                        f0 = 0;
+                        f1 = 1;
+                    } else {
+                        f0 = (float)i / (rectangles.Count - 1);
+                        f1 = 1f - (float)i / (rectangles.Count - 1);
+                    }
                     int R = (int)(c0.R * f0 + c1.R * f1);
                     int G = (int)(c0.G * f0 + c1.G * f1);
                     int B = (int)(c0.B * f0 + c1.B * f1);
@@ -106,19 +114,32 @@ namespace VisualTests
                 g.DrawString($"Rectangles = {rectangles.Count:n0}, Hull points = {_convexHull.Count}", _font, Brushes.LightCoral, 5, 5);
             } else {
                 OrientedRectangle minWidthRectangle = BoundingRectangles.OptimalFromConvexHull(
-                    _convexHull, (a, b) => a.MinSideSquared < b.MinSideSquared);
+                    _convexHull, (a, b) => a.MinSideSquared < b.MinSideSquared || MathF.Abs(a.MinSideSquared - b.MinSideSquared) < 1e-6 && a.MaxSideSquared < b.MaxSideSquared);
                 DrawOrientedRectangle(g, Pens.LightCoral, minWidthRectangle);
-                g.DrawString($"min width w={minWidthRectangle.Width:n1}, r={minWidthRectangle.Ratio:n4}, a={minWidthRectangle.Area:n0}", _font, Brushes.LightCoral, 5, 5);
+                PrintRectangleText(g, Brushes.LightCoral, "min width", minWidthRectangle, 5, 5);
 
                 OrientedRectangle minRatioRectangle = BoundingRectangles.OptimalFromConvexHull(
                     _convexHull, (a, b) => a.RatioSquared < b.RatioSquared);
                 DrawOrientedRectangle(g, Pens.SkyBlue, minRatioRectangle);
-                g.DrawString($"min ratio  w={minRatioRectangle.Width:n1}, r={minRatioRectangle.Ratio:n4}, a={minRatioRectangle.Area:n0}", _font, Brushes.SkyBlue, 5, 20);
+                PrintRectangleText(g, Brushes.SkyBlue, "min ratio", minRatioRectangle, 5, 20);
 
                 OrientedRectangle minAreaRectangle = BoundingRectangles.OptimalFromConvexHull(
                     _convexHull, (a, b) => a.AreaSquared < b.AreaSquared);
                 DrawOrientedRectangle(g, Pens.YellowGreen, minAreaRectangle);
-                g.DrawString($"min area   w={minAreaRectangle.Width:n1}, r={minAreaRectangle.Ratio:n4}, a={minAreaRectangle.Area:n0}", _font, Brushes.YellowGreen, 5, 35);
+                PrintRectangleText(g, Brushes.YellowGreen, "min area ", minAreaRectangle, 5, 35);
+            }
+            if (PointSet == PointSet.AlignmentTest) {
+                using var pen = new Pen(Color.Black);
+                pen.DashStyle = DashStyle.Custom;
+                pen.DashPattern = new[] { 0.5f, 5f };
+                DrawOrientedRectangle(g, pen, _baseAlignmentRect);
+                g.DrawString($"i = {_pointSetIndex:n0}", _font, Brushes.SteelBlue, 5, 50);
+            }
+
+
+            static void PrintRectangleText(Graphics g, Brush brush, string text, OrientedRectangle r, int x, int y)
+            {
+                g.DrawString($"{text}   {r.MinSide:n1} × {r.MaxSide:n1}, r={r.Ratio:n4}, a={r.Area:n0}", _font, brush, x, y);
             }
 
             static void DrawOrientedRectangle(Graphics g, Pen pen, OrientedRectangle r)
@@ -148,7 +169,7 @@ namespace VisualTests
         {
             switch (PointSet) {
                 case PointSet.AlignmentTest:
-                    GetAlignmentTestPoints(canvas, margin);
+                    _baseAlignmentRect = GetAlignmentTestPoints(canvas, margin);
                     break;
                 case PointSet.Random:
                     GetRandomPoints(canvas, margin);
@@ -167,7 +188,7 @@ namespace VisualTests
             _convexHull = ConvexHull.Compute(_points);
             _originalCanvasSize = canvas.Size;
 
-            void GetAlignmentTestPoints(Control canvas, int margin)
+            OrientedRectangle GetAlignmentTestPoints(Control canvas, int margin)
             {
                 const int size = 200;
 
@@ -185,27 +206,36 @@ namespace VisualTests
                 {
                     return bits.Get(bitIndex) ? 40 : 0;
                 }
+
+                return new OrientedRectangle(
+                    new Vector2(0 + margin, 0 + margin),
+                    new Vector2(size + margin, 0 + margin),
+                    new Vector2(size + margin, size + margin),
+                    new Vector2(0 + margin, size + margin)
+                );
             }
 
-            void GetRandomPoints(Control canvas, int margin, int rasterSize = 1)
+            void GetRandomPoints(Control canvas, int margin, int? rasterSize = null)
             {
                 int w = canvas.Width - 2 * margin;
                 int h = canvas.Height - 2 * margin;
-                float rx = 0.5f * w;
-                float ry = 0.5f * h;
+                double rx = 0.5 * w;
+                double ry = 0.5 * h;
 
                 _points = new Vector2[_numberOfPoints];
 
                 // Get random points in ellipse
                 for (int i = 0; i < _numberOfPoints; i++) {
-                    float x, y;
+                    double x, y;
                     do {
-                        x = _random.Next(0, w);
-                        y = _random.Next(0, h);
-                    } while ((x - rx).Squared() / rx.Squared() + (y - ry).Squared() / ry.Squared() > 1f);
-                    x = (int)x / rasterSize * rasterSize;
-                    y = (int)y / rasterSize * rasterSize;
-                    _points[i] = new Vector2(x + margin, y + margin);
+                        x = w * _random.NextDouble();
+                        y = h * _random.NextDouble();
+                    } while ((x - rx).Squared() / rx.Squared() + (y - ry).Squared() / ry.Squared() > 1);
+                    if (rasterSize is int r) {
+                        x = (int)x / r * r;
+                        y = (int)y / r * r;
+                    }
+                    _points[i] = new Vector2((float)(x + margin), (float)(y + margin));
                 }
             }
 

@@ -50,11 +50,16 @@ namespace CySoft.Geometry
         /// <returns>The best oriented bounding rectangle.</returns>
         public static OrientedRectangle OptimalFromConvexHull(IList<Vector2> convexHull, CompareRectPredicate isBetter)
         {
-            var caliperSet = new CalpierSet(convexHull); // Creates initial axis-aligned calipers.
+            if (convexHull.Count == 0) {
+                return default;
+            }
+
+            var hullStatus = new HullStatus(convexHull);
+            var caliperSet = new CalpierSet(hullStatus); // Creates initial axis-aligned calipers.
             caliperSet.RotateBySmallestTheta();
 
             var bestRectangle = caliperSet.AsOrientedRectangle();
-            while (caliperSet.c3.Orientation < Caliper.Deg90) {
+            while (hullStatus.UndoneCount > 0) {
                 caliperSet.RotateBySmallestTheta();
                 var candidateRectangle = caliperSet.AsOrientedRectangle();
                 if (isBetter(candidateRectangle, bestRectangle)) {
@@ -78,19 +83,24 @@ namespace CySoft.Geometry
         }
 
         /// <summary>
-        /// Returns all oriented bounded rectangles aligned with at least one edge of the convex hull.
+        /// Returns all distinct oriented bounded rectangles aligned with at least one edge of the convex hull.
         /// </summary>
         /// <param name="convexHull">A convex hull or polynome.</param>
         /// <returns>List of oriented bounded rectangles.</returns>
         public static List<OrientedRectangle> AllFromConvexHull(IList<Vector2> convexHull)
         {
-            var caliperSet = new CalpierSet(convexHull); // Creates initial axis-aligned calipers.
+            var resultList = new List<OrientedRectangle>();
+            if (convexHull.Count == 0) {
+                return resultList;
+            }
+
+            var hullStatus = new HullStatus(convexHull);
+            var caliperSet = new CalpierSet(hullStatus); // Creates initial axis-aligned calipers.
             caliperSet.RotateBySmallestTheta();
 
-            var resultList = new List<OrientedRectangle>();
             OrientedRectangle rect = caliperSet.AsOrientedRectangle();
             resultList.Add(rect);
-            while (caliperSet.c3.Orientation < Caliper.Deg90) {
+            while (hullStatus.UndoneCount > 0) {
                 caliperSet.RotateBySmallestTheta();
                 rect = caliperSet.AsOrientedRectangle();
                 resultList.Add(rect);
@@ -101,24 +111,32 @@ namespace CySoft.Geometry
 
         private struct CalpierSet
         {
-            public CalpierSet(IList<Vector2> convexHull)
+            private readonly HullStatus _hullStatus;
+
+            public CalpierSet(HullStatus hullStatus)
             {
+                _hullStatus = hullStatus;
+
                 // Create initial axis-aligned calipers
-                c0 = new Caliper(convexHull, GetIndex(convexHull, Corner.UpperRight), Caliper.Deg90);
-                c1 = new Caliper(convexHull, GetIndex(convexHull, Corner.UpperLeft), Caliper.Deg180);
-                c2 = new Caliper(convexHull, GetIndex(convexHull, Corner.LowerLeft), Caliper.Deg270);
-                c3 = new Caliper(convexHull, GetIndex(convexHull, Corner.LowerRight), 0);
+                IList<Vector2> convexHull = hullStatus.ConvexHull;
+                c0 = new Caliper(hullStatus, GetIndex(convexHull, Corner.UpperRight), Caliper.Deg90);
+                c1 = new Caliper(hullStatus, GetIndex(convexHull, Corner.UpperLeft), Caliper.Deg180);
+                c2 = new Caliper(hullStatus, GetIndex(convexHull, Corner.LowerLeft), Caliper.Deg270);
+                c3 = new Caliper(hullStatus, GetIndex(convexHull, Corner.LowerRight), 0);
             }
 
             public Caliper c0, c1, c2, c3;
 
             public void RotateBySmallestTheta()
             {
-                double smallestTheta = GetSmallestTheta();
-                c0.RotateBy(smallestTheta);
-                c1.RotateBy(smallestTheta);
-                c2.RotateBy(smallestTheta);
-                c3.RotateBy(smallestTheta);
+                bool wasDone0, wasDone1, wasDone2, wasDone3;
+                do {
+                    double smallestTheta = GetSmallestTheta();
+                    c0.RotateBy(smallestTheta, out wasDone0);
+                    c1.RotateBy(smallestTheta, out wasDone1);
+                    c2.RotateBy(smallestTheta, out wasDone2);
+                    c3.RotateBy(smallestTheta, out wasDone3);
+                } while (_hullStatus.UndoneCount > 0 && (wasDone0 || wasDone1 || wasDone2 || wasDone3));
             }
 
             public OrientedRectangle AsOrientedRectangle()

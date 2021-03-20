@@ -25,7 +25,7 @@ namespace VisualTests
             return new PointF(vector.X, vector.Y);
         }
 
-        public static float Squared(this float value) => value * value;
+        public static double Squared(this double value) => value * value;
 
         // From user ZombieSheep, https://stackoverflow.com/a/5796793/880990
         // It also handles strings like IBMMakeStuffAndSellIt, converting it to IBM Make Stuff And Sell It (IIRC).

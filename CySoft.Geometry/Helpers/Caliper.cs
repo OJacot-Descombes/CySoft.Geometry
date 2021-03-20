@@ -10,6 +10,7 @@ namespace CySoft.Geometry.Helpers
         public const double Deg90 = MathF.PI / 2, Deg180 = MathF.PI, Deg270 = 1.5f * MathF.PI, Deg360 = 2 * MathF.PI;
 
         readonly IList<Vector2> _convexHull;
+        private readonly HullStatus _hullStatus;
         private int _pointIndex;
         private double _orientation;
 
@@ -17,9 +18,12 @@ namespace CySoft.Geometry.Helpers
         private double _constant, _slope, _angleToNextPoint;
         private Vector2 _vertex, _nextVertex;
 
-        public Caliper(IList<Vector2> convexHull, int pointIndex, double orientation)
+        public int PointIndex => _pointIndex;
+
+        public Caliper(HullStatus hullStatus, int pointIndex, double orientation)
         {
-            _convexHull = convexHull;
+            _hullStatus = hullStatus;
+            _convexHull = hullStatus.ConvexHull;
             _pointIndex = pointIndex;
             _orientation = orientation;
             Recalc();
@@ -76,9 +80,12 @@ namespace CySoft.Geometry.Helpers
             return Math.Abs(_orientation - Deg90) < SIGMA || Math.Abs(_orientation - Deg270) < SIGMA;
         }
 
-        public void RotateBy(double angle)
+        public void RotateBy(double angle, out bool wasDone)
         {
+            wasDone = false;
             if (Math.Abs(_angleToNextPoint - angle) < 1e-6f) {
+                wasDone = _hullStatus.IsDone(_pointIndex);
+                _hullStatus.MarkAsDone(_pointIndex);
                 _pointIndex = (_pointIndex + 1) % _convexHull.Count;
             }
 

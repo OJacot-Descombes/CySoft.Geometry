@@ -51,6 +51,9 @@ namespace CySoft.Geometry
         public static List<Vector2> Compute(IList<Vector2> inputPoints)
         {
             var points = new List<Vector2>(inputPoints);
+            if (inputPoints.Count == 0) {
+                return points;
+            }
 
             // Compute the reference point: It sorts points by their y-coordinate.
             // If two points have the same y-coordinate, it sorts them by the x-coordinate.

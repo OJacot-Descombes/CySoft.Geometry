@@ -10,7 +10,7 @@ namespace CySoft.Geometry.Helpers
         {
             using var sourceIterator = source.GetEnumerator();
             if (!sourceIterator.MoveNext()) {
-                throw new InvalidOperationException("Sequence contains no elements");
+                return default;
             }
             T min = sourceIterator.Current;
             while (sourceIterator.MoveNext()) {
