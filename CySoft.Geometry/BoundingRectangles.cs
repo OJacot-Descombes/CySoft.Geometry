@@ -78,7 +78,7 @@ namespace CySoft.Geometry
         /// <returns>List of oriented bounded rectangles.</returns>
         public static List<OrientedRectangle> AllFromPoints(IList<Vector2> points)
         {
-            var convexHull = ConvexHull.Compute(points);
+            var convexHull = QuickHull.Compute(points);
             return AllFromConvexHull(convexHull);
         }
 

@@ -184,15 +184,9 @@ namespace VisualTests
                     break;
             }
 
-
-            //_convexHull = GrahamScan.GetConvexHull(_points);
-            //_convexHull.Reverse();
-
-            //_convexHull = ConvexHull.Compute(_points);
-
             _convexHull = QuickHull.Compute(new List<Vector2>(_points));
-
             _originalCanvasSize = canvas.Size;
+
 
             OrientedRectangle GetAlignmentTestPoints(Control canvas, int margin)
             {

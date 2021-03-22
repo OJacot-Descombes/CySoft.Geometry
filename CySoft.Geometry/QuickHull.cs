@@ -14,12 +14,12 @@ namespace CySoft.Geometry
     /// imprecision (probably due to the delicate relative angle calculations).</remarks>
     public static class QuickHull
     {
-        public static List<Vector2> Compute(List<Vector2> points)
+        public static List<Vector2> Compute(IList<Vector2> points)
         {
             var hull = new List<Vector2>();
             if (points.Count <= 3) {
-                //points.push(points[0]); //close the poly
-                return points;
+                return new List<Vector2>(points);//TODO: fix wrong orientation.
+
             }
             Line baseline = GetMinMaxPoints(points);
             AddSegments(hull, baseline, points);
@@ -27,8 +27,6 @@ namespace CySoft.Geometry
             // Reverse line direction to get points on other side.
             AddSegments(hull, baseline.Reverse, points);
 
-            //add the last point to make a closed loop
-            //hull.push(hull[0]);
             return hull;
         }
 
@@ -37,7 +35,7 @@ namespace CySoft.Geometry
         /// </summary>
         /// <param name="points">An array of {x,y} objects</param>
         /// <returns>[ {x,y}, {x,y} ]</returns>
-        private static Line GetMinMaxPoints(List<Vector2> points)
+        private static Line GetMinMaxPoints(IList<Vector2> points)
         {
             Vector2 minPoint = points[0];
             Vector2 maxPoint = points[0];
@@ -71,7 +69,7 @@ namespace CySoft.Geometry
         /// <param name="line"></param>
         /// <param name="points"></param>
         /// <returns>{points: [ [x1, y1], ... ], max: [x,y] ]</returns>
-        private static (List<Vector2> points, Vector2 max) DistalPoints(Line line, List<Vector2> points)
+        private static (List<Vector2> points, Vector2 max) DistalPoints(Line line, IList<Vector2> points)
         {
             var outer_points = new List<Vector2>();
             Vector2 distal_point = default;
@@ -98,7 +96,7 @@ namespace CySoft.Geometry
         /// </summary>
         /// <param name="line"></param>
         /// <param name="points"></param>
-        private static void AddSegments(List<Vector2> hull, Line line, List<Vector2> points)
+        private static void AddSegments(List<Vector2> hull, Line line, IList<Vector2> points)
         {
             var distal = DistalPoints(line, points);
             if (distal.points.Count == 0) {
