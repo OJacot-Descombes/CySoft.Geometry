@@ -19,8 +19,8 @@ namespace CySoft.Geometry.Comparers
 
         public int Compare(Vector2 p0, Vector2 p1)
         {
-            float angle0 = _center.AngleToX(p0).NormalizeAngle();
-            float angle1 = _center.AngleToX(p1).NormalizeAngle();
+            double angle0 = _center.AngleToX(p0).NormalizeAngle();
+            double angle1 = _center.AngleToX(p1).NormalizeAngle();
 
             return  angle0.CompareTo(angle1);
         }

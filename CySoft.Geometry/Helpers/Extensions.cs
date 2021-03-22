@@ -28,11 +28,11 @@ namespace CySoft.Geometry.Helpers
         /// <param name="p0">The start point of the line</param>
         /// <param name="p1">The end point of the line</param>
         /// <returns>The angle, in radians, that the line has to the x-axis</returns>
-        public static float AngleToX(this Vector2 p0, Vector2 p1)
+        public static double AngleToX(this Vector2 p0, Vector2 p1)
         {
-            float dx = p1.X - p0.X;
-            float dy = p1.Y - p0.Y;
-            return MathF.Atan2(dy, dx);
+            double dx = (double)p1.X - p0.X;
+            double dy = (double)p1.Y - p0.Y;
+            return Math.Atan2(dy, dx);
         }
 
         /// <summary>
@@ -40,9 +40,9 @@ namespace CySoft.Geometry.Helpers
         /// </summary>
         /// <param name="angle">The angle</param>
         /// <returns>The normalized angle</returns>
-        public static float NormalizeAngle(this float angle)
+        public static double NormalizeAngle(this double angle)
         {
-            const float TwoPI = MathF.PI + MathF.PI;
+            const double TwoPI = Math.PI + Math.PI;
 
             return (angle + TwoPI) % TwoPI;
         }
@@ -76,10 +76,10 @@ namespace CySoft.Geometry.Helpers
         {
             p2 -= p1;
             p -= p1;
-            float px = p.X; float py = p.Y;
-            float x2 = p2.X; float y2 = p2.Y;
+            double px = p.X; double py = p.Y;
+            double x2 = p2.X; double y2 = p2.Y;
 
-            float ccw = px * y2 - py * x2;
+            double ccw = px * y2 - py * x2;
             if (ccw == 0) {
                 // The point is colinear, classify based on which side of the segment the point falls on. We can
                 // calculate a relative value using the projection of px,py onto the segment - a negative value

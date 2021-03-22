@@ -32,9 +32,9 @@ namespace CySoft.Geometry
         /// <param name="points">Arbitrary set of points.</param>
         /// <param name="isBetter">Delegate telling whether a rectangle is better than a reference rectangle.</param>
         /// <returns>The best oriented bounding rectangle.</returns>
-        public static OrientedRectangle OptimalFromPoints(IList<Vector2> points, CompareRectPredicate isBetter)
+        public static OrientedRectangle OptimalFromPoints(List<Vector2> points, CompareRectPredicate isBetter)
         {
-            var convexHull = ConvexHull.Compute(points);
+            var convexHull = QuickHull.Compute(points);
             return OptimalFromConvexHull(convexHull, isBetter);
         }
 

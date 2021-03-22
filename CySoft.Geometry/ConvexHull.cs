@@ -107,17 +107,17 @@ namespace CySoft.Geometry
         /// <returns>The points with unique angles</returns>
         private static List<Vector2> MakeAnglesUnique(List<Vector2> points)
         {
-            const float Epsilon = 1e-8f;
+            const double Epsilon = 1e-8f;
 
             Vector2 referencePoint = points[0];
             var newPoints = new List<Vector2> { referencePoint };
-            float previousAngle = 2 * MathF.PI;
-            float previousDistanceSquared = Single.MaxValue;
+            double previousAngle = 2 * Math.PI;
+            double previousDistanceSquared = Single.MaxValue;
             for (int i = 1; i < points.Count; i++) {
                 Vector2 p = points[i];
-                float angle = referencePoint.AngleToX(p);
-                float distanceSquared = (referencePoint - p).LengthSquared();
-                if (MathF.Abs(angle - previousAngle) > Epsilon) {
+                double angle = referencePoint.AngleToX(p);
+                double distanceSquared = (referencePoint - p).LengthSquared();
+                if (Math.Abs(angle - previousAngle) > Epsilon && Math.Abs(distanceSquared - previousDistanceSquared) > Epsilon) {
                     newPoints.Add(p);
                 } else {
                     if (distanceSquared > previousDistanceSquared) {
