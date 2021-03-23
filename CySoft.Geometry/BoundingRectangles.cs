@@ -59,13 +59,11 @@ namespace CySoft.Geometry
                 return default;
             }
 
-            var hullStatus = new HullStatus(convexHull);
-            var caliperSet = new CalpierSet(hullStatus); // Creates initial axis-aligned calipers.
+            var caliperSet = new CalpierSet(convexHull); // Creates initial axis-aligned calipers.
             caliperSet.RotateBySmallestTheta();
 
             var bestRectangle = caliperSet.AsOrientedRectangle();
-            while (hullStatus.UndoneCount > 0) {
-                caliperSet.RotateBySmallestTheta();
+            while (caliperSet.RotateBySmallestTheta()) {
                 var candidateRectangle = caliperSet.AsOrientedRectangle();
                 if (isBetter(candidateRectangle, bestRectangle)) {
                     bestRectangle = candidateRectangle;
@@ -104,14 +102,12 @@ namespace CySoft.Geometry
                 return resultList;
             }
 
-            var hullStatus = new HullStatus(convexHull);
-            var caliperSet = new CalpierSet(hullStatus); // Creates initial axis-aligned calipers.
+            var caliperSet = new CalpierSet(convexHull); // Creates initial axis-aligned calipers.
             caliperSet.RotateBySmallestTheta();
 
             OrientedRectangle rect = caliperSet.AsOrientedRectangle();
             resultList.Add(rect);
-            while (hullStatus.UndoneCount > 0) {
-                caliperSet.RotateBySmallestTheta();
+            while (caliperSet.RotateBySmallestTheta()) {
                 rect = caliperSet.AsOrientedRectangle();
                 resultList.Add(rect);
             }
@@ -121,52 +117,53 @@ namespace CySoft.Geometry
 
         private struct CalpierSet
         {
-            private readonly HullStatus _hullStatus;
+            private readonly bool[] _visited;
 
-            public CalpierSet(HullStatus hullStatus)
+            public CalpierSet(IList<Vector2> convexHull)
             {
-                _hullStatus = hullStatus;
+                _visited = new bool[convexHull.Count];
 
                 // Create initial axis-aligned calipers
-                IList<Vector2> convexHull = hullStatus.ConvexHull;
-                c0 = new Caliper(hullStatus, GetIndex(convexHull, Corner.UpperRight), Caliper.Deg90);
-                c1 = new Caliper(hullStatus, GetIndex(convexHull, Corner.UpperLeft), Caliper.Deg180);
-                c2 = new Caliper(hullStatus, GetIndex(convexHull, Corner.LowerLeft), Caliper.Deg270);
-                c3 = new Caliper(hullStatus, GetIndex(convexHull, Corner.LowerRight), 0);
+                c0 = new Caliper(convexHull, _visited, GetIndex(convexHull, Corner.UpperRight), Caliper.Deg90);
+                c1 = new Caliper(convexHull, _visited, GetIndex(convexHull, Corner.UpperLeft), Caliper.Deg180);
+                c2 = new Caliper(convexHull, _visited, GetIndex(convexHull, Corner.LowerLeft), Caliper.Deg270);
+                c3 = new Caliper(convexHull, _visited, GetIndex(convexHull, Corner.LowerRight), 0);
             }
 
             public Caliper c0, c1, c2, c3;
 
-            public void RotateBySmallestTheta()
+            public bool RotateBySmallestTheta()
             {
-                bool wasDone0, wasDone1, wasDone2, wasDone3;
-                do {
-                    double smallestTheta = GetSmallestTheta();
-                    c0.RotateBy(smallestTheta, out wasDone0);
-                    c1.RotateBy(smallestTheta, out wasDone1);
-                    c2.RotateBy(smallestTheta, out wasDone2);
-                    c3.RotateBy(smallestTheta, out wasDone3);
-                } while (_hullStatus.UndoneCount > 0 && (wasDone0 || wasDone1 || wasDone2 || wasDone3));
+                var (smallestTheta, visited) = GetSmallestTheta();
+                if (visited) {
+                    return false;
+                }
+                c0.RotateBy(smallestTheta);
+                c1.RotateBy(smallestTheta);
+                c2.RotateBy(smallestTheta);
+                c3.RotateBy(smallestTheta);
+                return true;
             }
 
-            public OrientedRectangle AsOrientedRectangle()
-            {
-                return new OrientedRectangle(
-                    c3.IntersectWith(c0), c0.IntersectWith(c1), c1.IntersectWith(c2), c2.IntersectWith(c3));
-            }
-
-            private double GetSmallestTheta()
+            private (double theta, bool visited) GetSmallestTheta()
             {
                 double theta0 = c0.AngleToNextPoint;
                 double theta1 = c1.AngleToNextPoint;
                 double theta2 = c2.AngleToNextPoint;
                 double theta3 = c3.AngleToNextPoint;
 
+                bool visited = _visited[c0.PointIndex];
                 double theta = theta0;
-                if (theta1 < theta) theta = theta1;
-                if (theta2 < theta) theta = theta2;
-                if (theta3 < theta) theta = theta3;
-                return theta;
+                if (theta1 < theta) { theta = theta1; visited = _visited[c1.PointIndex]; }
+                if (theta2 < theta) { theta = theta2; visited = _visited[c2.PointIndex]; }
+                if (theta3 < theta) { theta = theta3; visited = _visited[c3.PointIndex]; }
+                return (theta, visited);
+            }
+
+            public OrientedRectangle AsOrientedRectangle()
+            {
+                return new OrientedRectangle(
+                    c3.IntersectWith(c0), c0.IntersectWith(c1), c1.IntersectWith(c2), c2.IntersectWith(c3));
             }
 
             private static int GetIndex(IList<Vector2> convexHull, Corner corner)
