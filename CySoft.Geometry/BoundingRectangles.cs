@@ -32,7 +32,7 @@ namespace CySoft.Geometry
         /// <param name="points">Arbitrary set of points.</param>
         /// <param name="isBetter">Delegate telling whether a rectangle is better than a reference rectangle.</param>
         /// <returns>The best oriented bounding rectangle.</returns>
-        public static OrientedRectangle OptimalFromPoints(List<Vector2> points, CompareRectPredicate isBetter)
+        public static OrientedRectangle OptimalFromPoints(ICollection<Vector2> points, CompareRectPredicate isBetter)
         {
             var convexHull = QuickHull.Compute(points);
             return OptimalFromConvexHull(convexHull, isBetter);
@@ -42,7 +42,12 @@ namespace CySoft.Geometry
         /// Gets the best oriented bounding rectangle enclosing a convex hull or polygon according to a user-defined
         /// criterion. You can call <c>ConvexHull.Compute(points);</c> to create a convex hull.
         /// </summary>
-        /// <remarks>The returned rectangle is always aligned with at least one edge of the convex hull. For the
+        /// <remarks>
+        /// The convex hull must be given with counterclockwise-ordered vertices in a right-handed coordinate system
+        /// (y-axis pointing upwards) and clockwise-ordered vertices in a left-handed coordinate system (y-axis
+        /// pointing downwards, as is the case for screen coordinates)<br/>
+        /// <br/>
+        /// The returned rectangle is always aligned with at least one edge of the convex hull. For the
         /// minimum aera and minimum width this will return the optimal rectangle. For other criteria, the rectangle
         /// might be sub-optimal.</remarks>
         /// <param name="convexHull">A convex hull or polynome.</param>
@@ -76,7 +81,7 @@ namespace CySoft.Geometry
         /// <remarks>This calls <c>ConvexHull.Compute(points);</c></remarks>
         /// <param name="points">Arbitrary set of points.</param>
         /// <returns>List of oriented bounded rectangles.</returns>
-        public static List<OrientedRectangle> AllFromPoints(IList<Vector2> points)
+        public static List<OrientedRectangle> AllFromPoints(ICollection<Vector2> points)
         {
             var convexHull = QuickHull.Compute(points);
             return AllFromConvexHull(convexHull);
@@ -85,6 +90,11 @@ namespace CySoft.Geometry
         /// <summary>
         /// Returns all distinct oriented bounded rectangles aligned with at least one edge of the convex hull.
         /// </summary>
+        /// <remarks>
+        /// The convex hull must be given with counterclockwise-ordered vertices in a right-handed coordinate system
+        /// (y-axis pointing upwards) and clockwise-ordered vertices in a left-handed coordinate system (y-axis
+        /// pointing downwards, as is the case for screen coordinates)
+        /// </remarks>
         /// <param name="convexHull">A convex hull or polynome.</param>
         /// <returns>List of oriented bounded rectangles.</returns>
         public static List<OrientedRectangle> AllFromConvexHull(IList<Vector2> convexHull)

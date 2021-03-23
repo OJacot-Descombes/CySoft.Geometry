@@ -8,17 +8,36 @@ namespace CySoft.Geometry
     /// C# implementation of the QuickHull algorithm for finding the smallest polygon enclosing a set of points.<br/>
     /// Author: Olivier Jacot-Descombes.
     /// </summary>
-    /// <remarks>Adaptation of the Java Script implementation https://github.com/claytongulick/quickhull<br/> Author:
-    /// Clay Gulick.<br/><br/> Compared to 2 Graham Scan implementations I experimented with, this QuickHull
-    /// implementation is much more stable. Graham Scan suffers from numerical problems due to floating point
-    /// imprecision (probably due to the delicate relative angle calculations).</remarks>
+    /// <remarks>
+    /// Adaptation of the Java Script implementation https://github.com/claytongulick/quickhull. <br/>
+    /// Author: Clay Gulick.<br/>
+    /// <br/>
+    /// Compared to two Graham Scan implementations I experimented with, this QuickHull implementation is much more
+    /// stable. Graham Scan suffers from numerical problems due to floating point imprecision (probably due to the
+    /// delicate relative angle calculations).<br/>
+    /// <br/>
+    /// The Quick hull algorithm has an expected runtime of <c>O(n log(n))</c>.
+    /// <seealso cref="https://en.wikipedia.org/wiki/Quickhull">Quickhull (Wikipedia)</seealso><br/>
+    /// <br/>
+    /// Although the point coordinates are given as <c>float</c>, we do all calculations in <c>double</c> precision.
+    /// </remarks>
     public static class QuickHull
     {
-        public static List<Vector2> Compute(IList<Vector2> points)
+        /// <summary>
+        /// Computes the convex hull of the points given a finite set of 2D points.
+        /// </summary>
+        /// <remarks>
+        /// The hull is a convex polygon returned with counterclockwise-ordered vertices in a right-handed coordinate
+        /// system (y-axis pointing upwards) and clockwise-ordered vertices in a left-handed coordinate system (y-axis
+        /// pointing downwards, as is the case for screen coordinates).
+        /// </remarks>
+        /// <param name="points">Collection of 2D points in an arbitrary order.</param>
+        /// <returns>Convex hull</returns>
+        public static List<Vector2> Compute(ICollection<Vector2> points)
         {
             var hull = new List<Vector2>();
-            if (points.Count <= 3) {
-                return new List<Vector2>(points);//TODO: fix wrong orientation.
+            if (points.Count < 3) { // We still compute for 3 points to fix any wrong hull orientation.
+                return new List<Vector2>(points);
 
             }
             Line baseline = GetMinMaxPoints(points);
@@ -30,53 +49,48 @@ namespace CySoft.Geometry
             return hull;
         }
 
-        /// <summary>
-        /// Return the min and max points in the set along the X axis
-        /// </summary>
-        /// <param name="points">An array of {x,y} objects</param>
-        /// <returns>[ {x,y}, {x,y} ]</returns>
-        private static Line GetMinMaxPoints(IList<Vector2> points)
+        // Return the min and max points in the set along the X axis
+        private static Line GetMinMaxPoints(ICollection<Vector2> points)
         {
-            Vector2 minPoint = points[0];
-            Vector2 maxPoint = points[0];
+            Vector2 minPoint = default;
+            Vector2 maxPoint = default;
+            var enumerator = points.GetEnumerator();
+            if (enumerator.MoveNext()) {
+                minPoint = enumerator.Current;
+                maxPoint = enumerator.Current;
 
-            for (int i = 1; i < points.Count; i++) {
-                if (points[i].X < minPoint.X)
-                    minPoint = points[i];
-                if (points[i].X > maxPoint.X)
-                    maxPoint = points[i];
+                while (enumerator.MoveNext()) {
+                    Vector2 point = enumerator.Current;
+                    float x = point.X;
+                    float y = point.Y;
+                    if (x < minPoint.X || x == minPoint.X && y < minPoint.Y) {
+                        minPoint = point;
+                    }
+                    if (x > maxPoint.X || x == maxPoint.X && y > maxPoint.Y) {
+                        maxPoint = point;
+                    }
+                }
             }
 
             return new Line(minPoint, maxPoint);
         }
 
-        /// <summary>
-        /// Calculates the distance of a point from a line
-        /// </summary>
-        /// <param name="point">Array [x,y]</param>
-        /// <param name="line">rray of two points [ [x1,y1], [x2,y2] ]</param>
-        /// <returns></returns>
+        // Calculates the distance of a point from a line.
         private static double DistanceFromLine(Vector2 point, Line line)
         {
-            double vY = line.P1.Y - line.P0.Y;
-            double vX = line.P0.X - line.P1.X;
-            return (vX * (point.Y - line.P0.Y) + vY * (point.X - line.P0.X));
+            double vY = (double)line.P1.Y - line.P0.Y;
+            double vX = (double)line.P0.X - line.P1.X;
+            return (vX * ((double)point.Y - line.P0.Y) + vY * ((double)point.X - line.P0.X));
         }
 
-        /// <summary>
-        /// Determines the set of points that lay outside the line (positive), and the most distal point
-        /// </summary>
-        /// <param name="line"></param>
-        /// <param name="points"></param>
-        /// <returns>{points: [ [x1, y1], ... ], max: [x,y] ]</returns>
-        private static (List<Vector2> points, Vector2 max) DistalPoints(Line line, IList<Vector2> points)
+        // Determines the set of points that lay outside the line (positive), and the most distal point.
+        private static (List<Vector2> points, Vector2 max) DistalPoints(Line line, ICollection<Vector2> points)
         {
             var outer_points = new List<Vector2>();
             Vector2 distal_point = default;
             double max_distance = 0.0;
 
-            for (int i = 0; i < points.Count; i++) {
-                Vector2 point = points[i];
+            foreach (Vector2 point in points) {
                 double distance = DistanceFromLine(point, line);
 
                 if (distance > 0.0) {
@@ -91,12 +105,8 @@ namespace CySoft.Geometry
             return (outer_points, distal_point);
         }
 
-        /// <summary>
-        /// Recursively adds hull segments
-        /// </summary>
-        /// <param name="line"></param>
-        /// <param name="points"></param>
-        private static void AddSegments(List<Vector2> hull, Line line, IList<Vector2> points)
+        // Recursively adds hull segments.
+        private static void AddSegments(List<Vector2> hull, Line line, ICollection<Vector2> points)
         {
             var distal = DistalPoints(line, points);
             if (distal.points.Count == 0) {

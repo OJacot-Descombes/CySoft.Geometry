@@ -52,5 +52,7 @@ namespace CySoft.Geometry
         /// Ratio of the smallest side divided by the longest side. A value in the range 0..1.
         /// </summary>
         public float Ratio => MathF.Sqrt(MathF.Min(WidthSquared, HeightSquared) / MathF.Max(WidthSquared, HeightSquared));
+
+        public override string ToString() => $"OrientedRectangle: {V0} - {V1} - {V2} - {V3}";
     }
 }
